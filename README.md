@@ -16,6 +16,21 @@ A high-performance, enterprise-grade B2B platform prototype tailored exclusively
 
 ---
 
+## 📊 Existing Solutions & Competitor Comparison
+
+| Evaluation Dimension | Traditional Hotel PMS (Oracle Opera / Mews) | Unorganized Brokers & WhatsApp Groups | B2B Listing Portals (IndiaMART / Justdial) | HospitaLink B2B Exchange (Our Solution) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Core Focus** | Internal guest check-ins & room folio billing | Fragmented middleman matching | Generic directory & lead generation | **Inter-Enterprise B2B Resource & Asset Exchange** |
+| **Cross-Business Sharing** | ❌ None (Isolated to single hotel property) | ⚠️ Manual, ad-hoc, informal calls | ❌ Directory lookup only; no transactions | ✅ **Direct Peer-to-Peer Inter-Hotel / Caterer Fleet Grid** |
+| **Scheduling Clashes** | ⚠️ Internal room folio only | ❌ High risk (verbal commitments, frequent clashes) | ❌ No live inventory integration | ✅ **Smart Calendar Lock (20% Token instant freeze)** |
+| **Emergency Shortage Dispatch** | ❌ No cross-brand logistics | ❌ Unreliable (hours to days to source) | ❌ Slow quote turnaround (24–48 hrs) | ✅ **⚡ 30–60 Min Dispatch (5–15 km Haversine Radius)** |
+| **Asset Damage & Escrow** | ⚠️ Hotel incidentals deposit for guests | ❌ Zero security (unregulated disputes) | ❌ No escrow or inspection mechanism | ✅ **Platform-Held Escrow + 2-Step Digital Photo Audit** |
+| **3PL Transport Integration** | ❌ None | ⚠️ Manual arrangement, no discount | ❌ None | ✅ **Built-in Porter/Borzo Fare Simulator (-20% Round-Trip)** |
+| **Monetization Analytics** | ⚠️ RevPAR for guest rooms only | ❌ None | ❌ None | ✅ **Interactive Fleet Monetization & Capex ROI Calculator** |
+| **Commission / Fees** | ❌ Expensive enterprise licensing ($10k+) | ❌ High arbitrary broker cut (15%–25%) | ❌ Annual subscription / pay-per-lead | ✅ **Transparent 10% Platform Success Fee** |
+
+---
+
 ## 🌟 Key Features & Innovations
 
 ### 1. Dual-Booking Modes

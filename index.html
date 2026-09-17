@@ -204,6 +204,10 @@
           <button class="reset-filters-btn" id="btn-reset-filters">
             Reset
           </button>
+          <button class="reset-filters-btn" id="btn-clear-all-marketplace" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.35); display: inline-flex; align-items: center; gap: 0.35rem;" title="Clear all test items from localStorage">
+            <i data-lucide="trash-2" style="width: 0.85rem; height: 0.85rem;"></i>
+            <span>Clear All Data</span>
+          </button>
         </div>
 
         <!-- Category Pills Bar -->
@@ -404,9 +408,21 @@
       </div>
 
       <!-- Provider Registered Assets List -->
-      <div class="section-title-wrap" style="margin-bottom: 1.25rem;">
-        <h2>Your Registered Inventory Fleet</h2>
-        <p>Assets listed by your organization for inter-hotel and catering sharing.</p>
+      <div class="dashboard-actions-bar" style="margin-bottom: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div class="section-title-wrap">
+          <h2>Your Registered Inventory Fleet</h2>
+          <p>Assets listed by your organization for inter-hotel and catering sharing.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+          <button class="reset-filters-btn" id="btn-load-default-fleet" style="background-color: var(--card-bg); border-color: var(--border-subtle); display: inline-flex; align-items: center; gap: 0.4rem;" title="Reset fleet to default clean MMR inventory">
+            <i data-lucide="rotate-ccw" style="width: 0.9rem; height: 0.9rem; color: var(--accent-primary);"></i>
+            <span>Load Default Fleet</span>
+          </button>
+          <button class="reset-filters-btn" id="btn-clear-all-data" style="background-color: var(--card-bg); border-color: rgba(244, 63, 94, 0.4); color: var(--accent-rose); display: inline-flex; align-items: center; gap: 0.4rem;" title="Clear all test items from localStorage">
+            <i data-lucide="trash-2" style="width: 0.9rem; height: 0.9rem;"></i>
+            <span>Clear All Test Data</span>
+          </button>
+        </div>
       </div>
       <div class="table-card">
         <div class="table-responsive">
@@ -422,6 +438,7 @@
                 <th>Fulfillment</th>
                 <th>Daily Rate</th>
                 <th>Status</th>
+                <th style="text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody id="provider-inventory-table-body">
@@ -668,12 +685,13 @@
   <div class="modal-backdrop" id="list-asset-modal" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-header">
-        <div class="modal-title">List Commercial Asset for Exchange</div>
+        <div class="modal-title" id="list-asset-modal-title">List Commercial Asset for Exchange</div>
         <button class="modal-close-btn" id="btn-close-list" aria-label="Close modal">
           <i data-lucide="x"></i>
         </button>
       </div>
       <form id="form-list-asset" class="modal-body">
+        <input type="hidden" id="edit-asset-id" value="">
         <div class="form-group">
           <label class="form-label" for="asset-name">Asset Title</label>
           <input type="text" id="asset-name" class="form-input" placeholder="e.g. 500-Seater Banquet & Outdoor Lawn" required>
@@ -751,8 +769,19 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="asset-image">Asset Image URL</label>
-          <input type="url" id="asset-image" class="form-input" placeholder="https://images.unsplash.com/..." required value="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80">
+          <label class="form-label" for="assetImageInput">Asset Image (Upload Photo or Paste URL)</label>
+          <input type="file" id="assetImageInput" accept="image/*" class="form-input">
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Upload any image file from your device (converted to Base64) or enter an image URL below.
+          </div>
+          <input type="url" id="asset-image" class="form-input" style="margin-top: 0.4rem;" placeholder="Or paste direct image URL (https://...)">
+          <input type="hidden" id="asset-image-base64" value="">
+
+          <div id="asset-image-preview-container" class="image-upload-preview-box" style="display: none;">
+            <img id="asset-image-preview" src="" alt="Asset Preview">
+            <button type="button" class="btn-preview-remove" id="btn-remove-preview">✕ Remove Image</button>
+          </div>
+
           <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap;">
             <button type="button" class="demo-quick-btn preset-img-btn" data-url="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80">Venue Preset</button>
             <button type="button" class="demo-quick-btn preset-img-btn" data-url="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80">Kitchen Preset</button>
@@ -763,9 +792,9 @@
 
         <div class="modal-footer" style="padding: 0; background: transparent; border: none; margin-top: 0.5rem;">
           <button type="button" class="reset-filters-btn" id="btn-cancel-list">Cancel</button>
-          <button type="submit" class="btn-primary-action">
+          <button type="submit" class="btn-primary-action" id="btn-submit-asset">
             <i data-lucide="upload" style="width: 1rem; height: 1rem;"></i>
-            <span>Publish to Marketplace</span>
+            <span id="btn-submit-asset-text">Publish to Marketplace</span>
           </button>
         </div>
       </form>

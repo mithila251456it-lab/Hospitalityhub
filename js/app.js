@@ -103,10 +103,13 @@
       const defaultInventory = (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
       const defaultRequests = (typeof window !== 'undefined' && window.INITIAL_REQUESTS) ? window.INITIAL_REQUESTS : [];
 
-      if (!localStorage.getItem('hospitalink_inventory_mmr_v3')) {
+      if (localStorage.getItem('hospitalink_inventory_mmr_v3') === null) {
         localStorage.setItem('hospitalink_inventory_mmr_v3', JSON.stringify(defaultInventory));
       }
-      if (!localStorage.getItem('hospitalink_requests_mmr_v3')) {
+      if (localStorage.getItem('resources') === null) {
+        localStorage.setItem('resources', JSON.stringify(defaultInventory));
+      }
+      if (localStorage.getItem('hospitalink_requests_mmr_v3') === null) {
         localStorage.setItem('hospitalink_requests_mmr_v3', JSON.stringify(defaultRequests));
       }
     }
@@ -114,18 +117,27 @@
     loadInventory() {
       try {
         const stored = localStorage.getItem('hospitalink_inventory_mmr_v3');
-        if (stored) {
+        if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) return parsed;
         }
-        return (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
+        const legacy = localStorage.getItem('resources');
+        if (legacy !== null) {
+          const parsed = JSON.parse(legacy);
+          if (Array.isArray(parsed)) return parsed;
+        }
+        const def = (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
+        return JSON.parse(JSON.stringify(def));
       } catch {
-        return (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
+        const def = (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
+        return JSON.parse(JSON.stringify(def));
       }
     }
 
     saveInventory() {
-      localStorage.setItem('hospitalink_inventory_mmr_v3', JSON.stringify(this.state.inventory));
+      const data = JSON.stringify(this.state.inventory);
+      localStorage.setItem('hospitalink_inventory_mmr_v3', data);
+      localStorage.setItem('resources', data);
     }
 
     loadRequests() {
@@ -287,8 +299,11 @@
       this.dom.btnOpenListModal = document.getElementById('btn-open-list-modal');
       this.dom.btnOpenAuditModal = document.getElementById('btn-open-audit-modal');
 
-      // Add Asset Modal
+      // Add / Edit Asset Modal
       this.dom.listAssetModal = document.getElementById('list-asset-modal');
+      this.dom.listAssetModalTitle = document.getElementById('list-asset-modal-title');
+      this.dom.btnSubmitAssetText = document.getElementById('btn-submit-asset-text');
+      this.dom.editAssetId = document.getElementById('edit-asset-id');
       this.dom.btnCloseList = document.getElementById('btn-close-list');
       this.dom.btnCancelList = document.getElementById('btn-cancel-list');
       this.dom.formListAsset = document.getElementById('form-list-asset');
@@ -302,6 +317,15 @@
       this.dom.assetStatus = document.getElementById('asset-status');
       this.dom.assetInstantDispatch = document.getElementById('asset-instant-dispatch');
       this.dom.assetImage = document.getElementById('asset-image');
+      this.dom.assetImageInput = document.getElementById('assetImageInput');
+      this.dom.assetImageBase64 = document.getElementById('asset-image-base64');
+      this.dom.assetImagePreview = document.getElementById('asset-image-preview');
+      this.dom.assetImagePreviewContainer = document.getElementById('asset-image-preview-container');
+      this.dom.btnRemovePreview = document.getElementById('btn-remove-preview');
+      this.dom.btnLoadDefaultFleet = document.getElementById('btn-load-default-fleet');
+      this.dom.btnResetFleet = document.getElementById('btn-reset-fleet');
+      this.dom.btnClearAllData = document.getElementById('btn-clear-all-data');
+      this.dom.btnClearAllMarketplace = document.getElementById('btn-clear-all-marketplace');
 
       // Quick View Modal
       this.dom.quickviewModal = document.getElementById('quickview-modal');
@@ -455,22 +479,57 @@
 
       this.dom.btnCalcListRate?.addEventListener('click', () => {
         const rate = parseInt(this.dom.sliderRate?.value || '15000', 10);
+        this.openListAssetModal();
         if (this.dom.assetRate) this.dom.assetRate.value = rate;
-        this.openModal(this.dom.listAssetModal);
       });
 
-      // 7. Add Asset Modal Events
-      this.dom.btnOpenListModal?.addEventListener('click', () => this.openModal(this.dom.listAssetModal));
+      // 7. Add / Edit Asset Modal Events
+      this.dom.btnOpenListModal?.addEventListener('click', () => this.openListAssetModal());
       this.dom.btnCloseList?.addEventListener('click', () => this.closeModal(this.dom.listAssetModal));
       this.dom.btnCancelList?.addEventListener('click', () => this.closeModal(this.dom.listAssetModal));
       this.dom.formListAsset?.addEventListener('submit', (e) => this.handleListAssetSubmit(e));
 
+      // Custom Image File Upload via FileReader
+      this.dom.assetImageInput?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64String = event.target.result;
+          if (this.dom.assetImageBase64) this.dom.assetImageBase64.value = base64String;
+          if (this.dom.assetImagePreview) this.dom.assetImagePreview.src = base64String;
+          if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Remove Image Preview
+      this.dom.btnRemovePreview?.addEventListener('click', () => {
+        if (this.dom.assetImageInput) this.dom.assetImageInput.value = '';
+        if (this.dom.assetImageBase64) this.dom.assetImageBase64.value = '';
+        if (this.dom.assetImage) this.dom.assetImage.value = '';
+        if (this.dom.assetImagePreview) this.dom.assetImagePreview.src = '';
+        if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'none';
+      });
+
+      // Preset Image Buttons
       document.querySelectorAll('.preset-img-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const url = e.target.getAttribute('data-url');
+          const url = e.currentTarget.getAttribute('data-url');
           if (this.dom.assetImage && url) this.dom.assetImage.value = url;
+          if (this.dom.assetImageBase64 && url) this.dom.assetImageBase64.value = url;
+          if (this.dom.assetImagePreview && url) this.dom.assetImagePreview.src = url;
+          if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'block';
+          if (this.dom.assetImageInput) this.dom.assetImageInput.value = '';
         });
       });
+
+      // Clear All Data & Load Default Fleet
+      this.dom.btnClearAllData?.addEventListener('click', () => this.clearAllData());
+      this.dom.btnClearAllMarketplace?.addEventListener('click', () => this.clearAllData());
+      this.dom.btnLoadDefaultFleet?.addEventListener('click', () => this.loadDefaultFleet());
+      this.dom.btnResetFleet?.addEventListener('click', () => this.loadDefaultFleet());
 
       // 8. Quick View Modal Events
       this.dom.btnCloseQv?.addEventListener('click', () => this.closeModal(this.dom.quickviewModal));
@@ -814,7 +873,33 @@
         this.dom.metricListingsCount.textContent = `${items.length} Assets Available`;
       }
 
-      // Empty State
+      // Empty State (Clean inventory empty vs filter empty)
+      if (this.state.inventory.length === 0) {
+        this.dom.listingsGrid.innerHTML = `
+          <div class="empty-state-wrap" style="grid-column: 1 / -1; text-align: center; padding: 4rem 1.5rem; background-color: var(--card-bg); border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
+            <div style="font-size: 3.2rem; margin-bottom: 0.75rem;">📦</div>
+            <h3 style="font-size: 1.35rem; color: var(--text-primary); margin-bottom: 0.5rem;">No resources listed yet. Click 'List Asset' to add one!</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 480px; margin: 0 auto 1.5rem;">
+              Your resource exchange inventory is currently empty. Add a new commercial equipment listing or reload the default MMR fleet.
+            </p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+              <button class="btn-primary-action" id="empty-list-asset-btn">
+                <i data-lucide="plus-circle" style="width: 1rem; height: 1rem;"></i>
+                <span>List Asset</span>
+              </button>
+              <button class="reset-filters-btn" id="empty-load-default-btn" style="background: var(--card-bg); border-color: var(--border-subtle); display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="rotate-ccw" style="width: 1rem; height: 1rem; color: var(--accent-primary);"></i>
+                <span>Load Default Fleet</span>
+              </button>
+            </div>
+          </div>
+        `;
+        document.getElementById('empty-list-asset-btn')?.addEventListener('click', () => this.openListAssetModal());
+        document.getElementById('empty-load-default-btn')?.addEventListener('click', () => this.loadDefaultFleet());
+        this.refreshIcons();
+        return;
+      }
+
       if (items.length === 0) {
         this.dom.listingsGrid.innerHTML = `
           <div class="empty-state-wrap" style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem;">
@@ -827,13 +912,14 @@
           </div>
         `;
         document.getElementById('empty-reset-btn')?.addEventListener('click', () => this.resetFilters());
+        this.refreshIcons();
         return;
       }
 
       // Render Cards
       this.dom.listingsGrid.innerHTML = items.map(asset => {
         const isAvailable = asset.availabilityStatus === 'Available';
-        const imgUrl = getSafeImageUrl(asset.image, asset.category);
+        const imgUrl = asset.image || 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&q=80';
         const distanceText = `${asset._distanceKm || 6.5} km from BKC`;
         const instantBadge = asset.instantDispatchAvailable
           ? `<span class="instant-dispatch-badge" style="position: absolute; bottom: 8px; left: 8px;"><i data-lucide="zap" style="width:0.75rem;height:0.75rem;"></i>⚡ 30–60 Min Dispatch</span>`
@@ -847,7 +933,6 @@
                 src="${imgUrl}" 
                 alt="${asset.title}" 
                 loading="lazy"
-                onerror="this.src='https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&q=80'"
               >
               <span class="card-category-badge">${asset.category}</span>
               <span class="card-status-pill ${isAvailable ? 'available' : 'booked'}">
@@ -899,6 +984,18 @@
                 </div>
               </div>
             </div>
+
+            <!-- Card Management Bar (Real-Time Edit & Delete) -->
+            <div class="card-manage-bar">
+              <button type="button" class="btn-card-action btn-edit-action" data-edit-id="${asset.id}" title="Edit this resource">
+                <i data-lucide="edit-3" style="width: 0.8rem; height: 0.8rem;"></i>
+                <span>✏️ Edit Resource</span>
+              </button>
+              <button type="button" class="btn-card-action btn-delete-action" data-delete-id="${asset.id}" title="Delete this resource">
+                <i data-lucide="trash-2" style="width: 0.8rem; height: 0.8rem;"></i>
+                <span>🗑️ Delete Resource</span>
+              </button>
+            </div>
           </article>
         `;
       }).join('');
@@ -926,6 +1023,23 @@
             return;
           }
           this.openRentalModal(id);
+        });
+      });
+
+      // Attach Real-Time Edit and Delete Handlers on Cards
+      this.dom.listingsGrid.querySelectorAll('[data-edit-id]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = e.currentTarget.getAttribute('data-edit-id');
+          this.editResource(id);
+        });
+      });
+
+      this.dom.listingsGrid.querySelectorAll('[data-delete-id]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = e.currentTarget.getAttribute('data-delete-id');
+          this.deleteResource(id);
         });
       });
 
@@ -1372,10 +1486,36 @@
     renderProviderFleetTable() {
       if (!this.dom.providerInventoryTableBody) return;
 
+      if (this.state.inventory.length === 0) {
+        this.dom.providerInventoryTableBody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
+              <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">No resources listed yet.</div>
+              <div style="font-size: 0.9rem; margin-bottom: 1.25rem;">Click 'List Asset' to add one!</div>
+              <div style="display: inline-flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
+                <button class="btn-primary-action" id="table-empty-list-btn" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">
+                  <i data-lucide="plus-circle" style="width: 0.9rem; height: 0.9rem;"></i>
+                  <span>List Asset</span>
+                </button>
+                <button class="reset-filters-btn" id="table-empty-load-btn" style="font-size: 0.85rem; padding: 0.5rem 1.2rem; background: var(--card-bg); border-color: var(--border-subtle);">
+                  <i data-lucide="rotate-ccw" style="width: 0.9rem; height: 0.9rem; color: var(--accent-primary);"></i>
+                  <span>Load Default Fleet</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        document.getElementById('table-empty-list-btn')?.addEventListener('click', () => this.openListAssetModal());
+        document.getElementById('table-empty-load-btn')?.addEventListener('click', () => this.loadDefaultFleet());
+        this.refreshIcons();
+        return;
+      }
+
       this.dom.providerInventoryTableBody.innerHTML = this.state.inventory.map(asset => {
         const isAvailable = asset.availabilityStatus === 'Available';
         return `
-          <tr>
+          <tr data-fleet-id="${asset.id}">
             <td><strong class="coordinates-tag">${asset.id.toUpperCase()}</strong></td>
             <td>
               <div style="font-weight: 600; color: var(--text-primary);">${asset.title}</div>
@@ -1388,14 +1528,25 @@
             <td><span class="fulfillment-badge ${asset.fulfillmentType === 'Site Delivery' ? 'fulfillment-delivery' : 'fulfillment-pickup'}">${asset.fulfillmentType}</span></td>
             <td><strong>₹${asset.pricePerDay.toLocaleString('en-IN')}</strong></td>
             <td>
-              <button class="status-badge ${isAvailable ? 'approved' : 'pending'} btn-toggle-avail" data-asset-id="${asset.id}" style="cursor: pointer; border: none;">
+              <button class="status-badge ${isAvailable ? 'approved' : 'pending'} btn-toggle-avail" data-asset-id="${asset.id}" style="cursor: pointer; border: none;" title="Click to toggle Available / Booked">
                 ${asset.availabilityStatus} ↻
+              </button>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="action-table-btn btn-edit-fleet-asset" data-edit-id="${asset.id}" title="Edit this resource" style="margin-right: 0.35rem; color: var(--accent-primary); border-color: var(--border-subtle); background: var(--card-bg);">
+                <i data-lucide="edit-3" style="width: 0.85rem; height: 0.85rem;"></i>
+                <span>Edit</span>
+              </button>
+              <button class="action-table-btn btn-delete-fleet-asset" data-delete-id="${asset.id}" title="Remove this resource" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4); background: var(--card-bg);">
+                <i data-lucide="trash-2" style="width: 0.85rem; height: 0.85rem;"></i>
+                <span>Delete</span>
               </button>
             </td>
           </tr>
         `;
       }).join('');
 
+      // Toggle Availability
       this.dom.providerInventoryTableBody.querySelectorAll('.btn-toggle-avail').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const assetId = e.currentTarget.getAttribute('data-asset-id');
@@ -1413,6 +1564,25 @@
           }
         });
       });
+
+      // Edit Resource from Fleet
+      this.dom.providerInventoryTableBody.querySelectorAll('.btn-edit-fleet-asset').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const assetId = e.currentTarget.getAttribute('data-edit-id');
+          this.editResource(assetId);
+        });
+      });
+
+      // Delete Asset from Fleet
+      this.dom.providerInventoryTableBody.querySelectorAll('.btn-delete-fleet-asset').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const assetId = e.currentTarget.getAttribute('data-delete-id');
+          this.deleteResource(assetId);
+        });
+      });
+
       this.refreshIcons();
     }
 
@@ -1666,10 +1836,127 @@
       }
     }
 
-    // --- Add Asset Modal Controller ---
+    // --- Add / Edit Asset Modal Controller & Resource Management ---
+    openListAssetModal() {
+      if (this.dom.listAssetModalTitle) {
+        this.dom.listAssetModalTitle.textContent = "List Commercial Asset for Exchange";
+      }
+      if (this.dom.btnSubmitAssetText) {
+        this.dom.btnSubmitAssetText.textContent = "Publish to Marketplace";
+      }
+      if (this.dom.editAssetId) {
+        this.dom.editAssetId.value = "";
+      }
+
+      this.dom.formListAsset?.reset();
+
+      if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'none';
+      if (this.dom.assetImagePreview) this.dom.assetImagePreview.src = '';
+      if (this.dom.assetImageBase64) this.dom.assetImageBase64.value = '';
+      if (this.dom.assetImageInput) this.dom.assetImageInput.value = '';
+      if (this.dom.assetImage) this.dom.assetImage.value = '';
+
+      this.openModal(this.dom.listAssetModal);
+    }
+
+    editResource(id) {
+      const asset = this.state.inventory.find(a => a.id === id);
+      if (!asset) return;
+
+      if (this.dom.listAssetModalTitle) {
+        this.dom.listAssetModalTitle.textContent = "Edit Commercial Asset";
+      }
+      if (this.dom.btnSubmitAssetText) {
+        this.dom.btnSubmitAssetText.textContent = "Update Asset";
+      }
+      if (this.dom.editAssetId) {
+        this.dom.editAssetId.value = asset.id;
+      }
+
+      if (this.dom.assetName) this.dom.assetName.value = asset.title || '';
+      if (this.dom.assetCategory) this.dom.assetCategory.value = asset.category || 'Venue';
+      if (this.dom.assetFulfillment) this.dom.assetFulfillment.value = asset.fulfillmentType || 'In-Store Pickup';
+      if (this.dom.assetShop) this.dom.assetShop.value = asset.shopName || '';
+      if (this.dom.assetVendorType) this.dom.assetVendorType.value = asset.vendorType || '';
+      if (this.dom.assetLocation) this.dom.assetLocation.value = asset.location || 'Lower Parel, Mumbai';
+      if (this.dom.assetRate) this.dom.assetRate.value = asset.pricePerDay || '';
+      if (this.dom.assetStatus) this.dom.assetStatus.value = asset.availabilityStatus || 'Available';
+      if (this.dom.assetInstantDispatch) this.dom.assetInstantDispatch.checked = Boolean(asset.instantDispatchAvailable);
+
+      if (this.dom.assetImageInput) this.dom.assetImageInput.value = '';
+
+      if (asset.image) {
+        if (this.dom.assetImageBase64) this.dom.assetImageBase64.value = asset.image;
+        if (this.dom.assetImagePreview) this.dom.assetImagePreview.src = asset.image;
+        if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'block';
+        if (this.dom.assetImage && !asset.image.startsWith('data:')) {
+          this.dom.assetImage.value = asset.image;
+        } else if (this.dom.assetImage) {
+          this.dom.assetImage.value = '';
+        }
+      } else {
+        if (this.dom.assetImageBase64) this.dom.assetImageBase64.value = '';
+        if (this.dom.assetImagePreviewContainer) this.dom.assetImagePreviewContainer.style.display = 'none';
+        if (this.dom.assetImagePreview) this.dom.assetImagePreview.src = '';
+        if (this.dom.assetImage) this.dom.assetImage.value = '';
+      }
+
+      this.openModal(this.dom.listAssetModal);
+    }
+
+    deleteResource(id) {
+      const item = this.state.inventory.find(a => a.id === id);
+      const itemName = item ? item.title : id;
+
+      if (!window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
+        return;
+      }
+
+      this.state.inventory = this.state.inventory.filter(a => a.id !== id);
+      this.saveInventory();
+      this.renderMarketplaceListings();
+      this.renderProviderDashboard();
+
+      this.showToast({
+        title: "Resource Deleted",
+        message: `"${itemName}" was removed from inventory.`,
+        type: "info"
+      });
+    }
+
+    clearAllData() {
+      if (window.confirm("Are you sure you want to delete all test items?")) {
+        this.state.inventory = [];
+        this.saveInventory();
+        this.renderMarketplaceListings();
+        this.renderProviderDashboard();
+
+        this.showToast({
+          title: "All Test Data Cleared",
+          message: "All items have been removed from your local storage.",
+          type: "info"
+        });
+      }
+    }
+
+    loadDefaultFleet() {
+      const defaultInventory = (typeof window !== 'undefined' && window.inventoryData) ? window.inventoryData : [];
+      this.state.inventory = JSON.parse(JSON.stringify(defaultInventory));
+      this.saveInventory();
+      this.renderMarketplaceListings();
+      this.renderProviderDashboard();
+
+      this.showToast({
+        title: "Default MMR Fleet Loaded",
+        message: "Restored 12 verified standard MMR hospitality assets.",
+        type: "success"
+      });
+    }
+
     handleListAssetSubmit(e) {
       e.preventDefault();
 
+      const editId = this.dom.editAssetId?.value.trim();
       const name = this.dom.assetName?.value.trim() || "Commercial Hospitality Asset";
       const category = this.dom.assetCategory?.value || "Venue";
       const fulfillment = this.dom.assetFulfillment?.value || "In-Store Pickup";
@@ -1679,7 +1966,11 @@
       const rate = parseInt(this.dom.assetRate?.value || '15000', 10);
       const status = this.dom.assetStatus?.value || "Available";
       const instantDispatch = this.dom.assetInstantDispatch?.checked || false;
-      const imageUrl = getSafeImageUrl(this.dom.assetImage?.value.trim(), category);
+
+      // Base64 file image takes priority over URL input, fallback to category image if none
+      const base64Image = this.dom.assetImageBase64?.value.trim();
+      const urlImage = this.dom.assetImage?.value.trim();
+      const chosenImage = base64Image || urlImage || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80';
 
       // Location coordinates lookup helper
       const coordsMap = {
@@ -1699,8 +1990,41 @@
 
       const coordinates = coordsMap[location] || MMR_DEPOT_COORDS;
 
+      if (editId) {
+        const assetIndex = this.state.inventory.findIndex(a => a.id === editId);
+        if (assetIndex !== -1) {
+          const existing = this.state.inventory[assetIndex];
+          existing.title = name;
+          existing.category = category;
+          existing.shopName = shop;
+          existing.vendorType = vendorType;
+          existing.location = location;
+          existing.fulfillmentType = fulfillment;
+          existing.pricePerDay = rate;
+          existing.availabilityStatus = status;
+          existing.image = chosenImage;
+          existing.coordinates = coordinates;
+          existing.instantDispatchAvailable = instantDispatch;
+
+          this.saveInventory();
+          this.dom.formListAsset?.reset();
+          this.closeModal(this.dom.listAssetModal);
+
+          this.renderMarketplaceListings();
+          this.renderProviderDashboard();
+
+          this.showToast({
+            title: "Asset Updated",
+            message: `"${name}" details updated successfully.`,
+            type: "success"
+          });
+          return;
+        }
+      }
+
+      // Create new asset with unique ID
       const newAsset = {
-        id: `mmr-${Date.now().toString().slice(-4)}`,
+        id: `mmr-${Date.now().toString()}`,
         title: name,
         category: category,
         shopName: shop,
@@ -1709,7 +2033,7 @@
         fulfillmentType: fulfillment,
         pricePerDay: rate,
         availabilityStatus: status,
-        image: imageUrl,
+        image: chosenImage,
         coordinates: coordinates,
         instantDispatchAvailable: instantDispatch
       };
@@ -1858,11 +2182,19 @@
   }
 
   // Universal DOM ready bootstrap
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.hospitaLinkApp = new HospitaLinkApp();
-    });
-  } else {
+  function bootstrapApp() {
     window.hospitaLinkApp = new HospitaLinkApp();
+    window.app = window.hospitaLinkApp;
+    // Expose global convenience functions
+    window.deleteResource = (id) => window.hospitaLinkApp.deleteResource(id);
+    window.editResource = (id) => window.hospitaLinkApp.editResource(id);
+    window.clearAllData = () => window.hospitaLinkApp.clearAllData();
+    window.loadDefaultFleet = () => window.hospitaLinkApp.loadDefaultFleet();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp);
+  } else {
+    bootstrapApp();
   }
 })();
