@@ -2,11 +2,28 @@
   "name": "hospitalink-b2b-exchange",
   "version": "1.0.0",
   "type": "module",
+  "main": "server/index.js",
   "description": "Enterprise B2B Hospitality Resource Exchange Web Application",
   "scripts": {
-    "start": "npx serve ."
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "dev": "node server/index.js"
   },
-  "keywords": ["hospitality", "b2b", "resource-exchange", "hackathon"],
+  "keywords": [
+    "hospitality",
+    "b2b",
+    "resource-exchange",
+    "marketplace",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
   "author": "HospitaLink",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.10.2"
+  }
 }
