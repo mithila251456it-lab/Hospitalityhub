@@ -95,6 +95,28 @@
       "contactPhone": "",
       "verified": true,
       "createdAt": "2026-09-25T12:17:04.641Z"
+    },
+    {
+      "email": "chefa_1790407233856@mumbaicaterers.in",
+      "password": "demo-password",
+      "businessName": "Chef A Gourmet Banquet Fleet",
+      "businessType": "Catering Enterprise",
+      "role": "Provider & Seeker",
+      "location": "Andheri East, Mumbai",
+      "contactPhone": "",
+      "verified": true,
+      "createdAt": "2026-09-26T07:20:35.351Z"
+    },
+    {
+      "email": "eventsb_1790407235358@tajhotels.com",
+      "password": "demo-password",
+      "businessName": "Taj Banquets Lower Parel",
+      "businessType": "Hotel & Resort",
+      "role": "Provider & Seeker",
+      "location": "Lower Parel, Mumbai",
+      "contactPhone": "",
+      "verified": true,
+      "createdAt": "2026-09-26T07:20:35.360Z"
     }
   ],
   "resources": [
